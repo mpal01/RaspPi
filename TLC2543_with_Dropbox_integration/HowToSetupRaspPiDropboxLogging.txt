@@ -1,0 +1,82 @@
+I got my Raspberry Pi from Newark, and use http://adafruit.com/products/965 from adafruit 
+
+First download Wheezy from the Raspberry Pi website: http://www.raspberrypi.org/downloads
+Put the image on the sd card: http://elinux.org/RPi_Easy_SD_Card_Setup (Follow steps under 'Copying the image to an SD Card on Windows')
+Once you put the SD card in the Pi and power it up it will take a while to boot for the first time
+(You can hook up a monitor and watch it boot up)
+
+
+
+Once it has fully booted up, issue the following commands (I just SSH into it):
+
+sudo raspi-config (expand the partition to fill the entire card)
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install git
+sudo wget http://goo.gl/1BOfJ -O /usr/bin/rpi-update (downloads the rpi-update you need to update to the newest image)
+sudo chmod +x /usr/bin/rpi-update
+sudo rpi-update
+sudo shutdown -r now
+
+
+sudo wget http://apt.bootc.net/debian/pool/main/l/linux-source-3.2.23-rpi1+/linux-image-3.2.23-rpi1+_1_armel.deb (update to the kernel)
+sudo dpkg -–force-architecture –i linux-image-3.2.23-rpi1+_1_armel.deb
+sudo nano /etc/modprobe.d/raspi-blacklist.conf
+(modify the following) #blacklist spi-bcm2708 (make sure to save it)
+sudo shutdown -r now
+ls -al /dev/spi* (should return the 2 spi ports)
+wget http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git\;a=blob_plain\;f=Documentation/spi/spidev_test.c -O spidev_test.c
+nano spidev_test.c
+(modify the following) static const char *device = "/dev/spidev0.0"; (make sure to save)
+gcc spidev_test.c
+(now short the MISO pin to the MOSI pin)
+sudo ./a.out
+(make sure it returns the folowing:)
+	spi mode: 0
+	bits per word: 8
+	max speed: 500000 Hz (500 KHz)
+
+	FF FF FF FF FF FF
+	40 00 00 00 00 95
+	FF FF FF FF FF FF
+	FF FF FF FF FF FF
+	FF FF FF FF FF FF
+	DE AD BE EF BA AD
+	F0 0D
+
+sudo apt-get install python-dev
+sudo apt-get install python-pip
+sudo easy_install -U distribute
+sudo pip install RPi.GPIO
+sudo pip install feedparser
+
+
+wget http://echolabs.org/Lemley/spimodule_loop.c
+wget http://echolabs.org/Lemley/datalogger2.py
+wget http://echolabs.org/Lemley/initalize_dropbox.py
+wget http://echolabs.org/Lemley/setup_loop.py
+sudo python setup_loop.py build
+cd build/lib.linux-armv6l-2.7/
+ls
+(make sure the spi.so is there)
+sudo mv spi.so ../..
+cd ~
+
+
+wget https://www.dropbox.com/static/developers/dropbox-python-sdk-1.5.1.zip
+sudo unzip dropbox-python-sdk-1.5.1.zip -d /home/pi/Dropbox_API
+sudo rm dropbox-python-sdk-1.5.1.zip
+cd Dropbox_API/dropbox-python-sdk-1.5.1/
+
+
+sudo python setup.py install
+
+(Now go get the APP_KEY and APP_SECRET from https://www.dropbox.com/developers/start/setup#python and you want an app folder when it asks)
+cd ~
+sudo nano initalize_dropbox.py (copy your key and secret into the script)
+sudo nano datalogger2.py (same thing as above)
+sudo python initalize_dropbox.py
+(go to the website and allow the app, then go back to terminal and press 'enter')
+(now hook up the TLC2543)
+
+sudo python datalogger2.py
